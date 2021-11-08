@@ -1,5 +1,5 @@
 import React from 'react'
-import ToDoCard from '../components/ToDoCard'
+//import ToDoCard from '../components/ToDoCard'
 import CreateCard from '../components/CreateCard'
 import ToDoCardContainer from './ToDoCardContainer'
 
@@ -26,7 +26,7 @@ export default class MainContainer extends React.Component {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
-                Acceåt: 'application/json'
+                Accept: 'application/json'
             },
             body: JSON.stringify({
                 title: input
@@ -76,12 +76,67 @@ export default class MainContainer extends React.Component {
         })
     }
 
+    //click list item to mark the task as done, false = undone / true = done
+    handleClickList = (cardId, listId) => {
+
+        //take in both the List ID and the Card ID as arguments
+        const foundCard = {...this.state.cards.find(card => card.id === cardId)}
+        const foundList = foundCard.lists.find(list => list.id === listId)
+
+        let newState = null
+
+        //determine if the clicked list item’s attribute of completed is true or false
+        if (foundList.completed) {
+            newState = false
+        } else {
+            newState = true
+        }
+
+        //pass new state to update (or send a PATCH request) database.
+        fetch('http://localhost:3000/lists/{listId}', {
+            method: "PATCH",
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json'
+            },
+            body: JSON.stringify({
+                completed: newState
+            })
+        })
+        .then(resp => resp.json())
+        .then(newList => {
+
+            //map technique to replace the updated object from the state’s array.
+            //nested array within the state, create new array of updated lists, then update the array
+            const newLists = foundCard.lists.map(list => {
+                if(list.id === listId){
+                    return newList
+                } else {
+                    return list
+                }
+            })
+            foundCard.lists = newLists
+
+            const newCards = this.state.cards.map(card => {
+                if (card.id === cardId){
+                    return foundCard
+                }else {
+                    return card
+                }
+            })
+
+            this.setState({
+                cards: newCards
+            })
+        })
+    }
+
     render(){
         return (
             //references to the functions
             <div className="main-container"> 
-                <ToDoCardContainer cards={this.state.cards}/>
-                <CreateCard createNewCard={this.createNewCard}></CreateCard> 
+                <ToDoCardContainer cards={this.state.cards} addList={this.addList} handleClickList={this.handleClickList}/>
+                <CreateCard createNewCard={this.createNewCard}/>
             </div>
         )
     }
